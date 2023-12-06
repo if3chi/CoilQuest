@@ -17,13 +17,55 @@ namespace CoilQuest
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly int _rows = 15, _cols = 15;
+        private readonly int _rows = 15, _cols = 15, _gameSpeed = 100;
         private readonly Image[,] _gridImages;
+        private readonly GameState _state;
+
+        private readonly Dictionary<GridValue, ImageSource> _gridValToImage = new()
+        {
+            {GridValue.Empty, Images.Empty },
+            {GridValue.Snake, Images.Body },
+            {GridValue.Food, Images.Food },
+        };
 
         public MainWindow()
         {
             InitializeComponent();
             _gridImages = SetupGrid();
+            _state = new(_rows, _cols);
+        }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            Draw();
+            await GameLoop();
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (_state.GameOver) return;
+
+            switch (e.Key)
+            {
+                case Key.Left:
+                    _state.ChangeDirection(Direction.Left); break;
+                case Key.Right:
+                    _state.ChangeDirection(Direction.Right); break;
+                case Key.Up:
+                    _state.ChangeDirection(Direction.Up); break;
+                case Key.Down:
+                    _state.ChangeDirection(Direction.Down); break;
+            }
+        }
+
+        private async Task GameLoop()
+        {
+            while (!_state.GameOver)
+            {
+                await Task.Delay(_gameSpeed);
+                _state.Move();
+                Draw();
+            }
         }
 
         private Image[,] SetupGrid()
@@ -43,6 +85,24 @@ namespace CoilQuest
             }
 
             return images;
+        }
+
+        private void Draw()
+        {
+            DrawGrid();
+            ScoreText.Text = $"Score {_state.Score}";
+        }
+
+        private void DrawGrid()
+        {
+            for (int row = 0; row < _rows; row++)
+            {
+                for (int col = 0; col < _cols; col++)
+                {
+                    GridValue gridValue = _state.Grid[row, col];
+                    _gridImages[row, col].Source = _gridValToImage[gridValue];
+                }
+            }
         }
     }
 }

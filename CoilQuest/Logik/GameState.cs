@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CoilQuest.Logik
+﻿namespace CoilQuest.Logik
 {
-    public class GameBoard
+    public class GameState
     {
         public int Rows { get; }
         public int Cols { get; }
@@ -16,9 +10,10 @@ namespace CoilQuest.Logik
         public bool GameOver { get; private set; }
 
         private readonly LinkedList<Position> _snakePositions = new();
+        private readonly LinkedList<Direction> _directionChanges = new();
         private readonly Random _random = new();
 
-        public GameBoard(int rows, int cols)
+        public GameState(int rows, int cols)
         {
             Rows = rows;
             Cols = cols;
@@ -35,6 +30,11 @@ namespace CoilQuest.Logik
 
         public void Move()
         {
+            if (_directionChanges.Count > 0) {
+                Dir = _directionChanges.First.Value;
+                _directionChanges.RemoveFirst();
+            }
+
             Position newHeadPos = HeadPosition().Translate(Dir);
             GridValue hit = WillHit(newHeadPos);
 
@@ -53,12 +53,27 @@ namespace CoilQuest.Logik
                 Score++;
                 SpawnFood();
             }
+        }
 
+        private Direction GetLastDirection()
+        {
+            if (_directionChanges.Count == 0) return Dir;
+
+            return _directionChanges.Last.Value;
+        }
+
+        private bool CanChangeDirection(Direction direction)
+        {
+            if (_directionChanges.Count == 2) return false;
+
+            Direction lastDirection = GetLastDirection();
+
+            return lastDirection != direction && direction != lastDirection.Opposite();
         }
 
         public void ChangeDirection(Direction direction)
         {
-            Dir = direction;
+            if (CanChangeDirection(direction)) _directionChanges.AddLast(direction);
         }
 
         private void SpawnHead(Position position)
